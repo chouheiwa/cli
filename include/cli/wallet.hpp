@@ -45,12 +45,13 @@ namespace kgt { namespace rpc {
         wallet();
         ~wallet();
         
+        void setTimeout(int timeout);
         virtual variant send_call( api_id_type api_id, string method_name, variants args = variants() );
         virtual variant send_callback( uint64_t callback_id, variants args = variants() );
         virtual void    send_notice( uint64_t callback_id, variants args = variants() );
         
         void setShowError(int showError);
-        int init(std::string& chain_id, std::string& ws_server);
+        int init(std::string& chain_id, std::string& ws_server, int timeout);
         void start();
         void format_result( const string& method, std::function<string(variant,const variants&)> formatter);
         int runCommand(api_type api,string& command,string& result);

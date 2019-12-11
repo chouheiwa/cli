@@ -58,13 +58,13 @@ namespace kgt { namespace rpc {
         FC_ASSERT(false);
     }
     
-    int wallet::init(std::string& chain_id, std::string& ws_server) {
+    int wallet::init(std::string& chain_id, std::string& ws_server, int timeout) {
         try{
             wdata = std::make_shared<wallet_data>();
             wdata->chain_id = chain_id_type(chain_id);
             wdata->ws_server = ws_server;
             client = std::make_shared<fc::http::websocket_client>();
-            con  = client->connect( wdata->ws_server );
+            con  = client->connect( wdata->ws_server, fc::milliseconds(timeout) );
             apic = std::make_shared<fc::rpc::websocket_api_connection>(*con.get());
             fc::api<login_api> remote_api = apic->get_remote_api< login_api >(1);
             FC_ASSERT( remote_api->login( wdata->ws_user, wdata->ws_password ) );
@@ -97,6 +97,10 @@ namespace kgt { namespace rpc {
     {
         wallet_commands() = get_method_names(0);
     }
+
+void wallet::setTimeout(int timeout) {
+    if (apic.get()) apic->setTimeout(timeout);
+}
     
     void wallet::format_result( const string& method, std::function<string(variant,const variants&)> formatter)
     {
@@ -126,7 +130,6 @@ namespace kgt { namespace rpc {
             const string& method = args[0].get_string();
             
             auto result = receive_call( api, method, variants( args.begin()+1,args.end() ) );
-            
             results = fc::json::to_pretty_string( result );
             
             return 0;
@@ -174,63 +177,11 @@ namespace kgt { namespace rpc {
         return ((char *)NULL);
     }
     
-    
-    static char** wallet_completion( const char * text , int start, int end)
-    {
-        char **matches;
-        matches = (char **)NULL;
-        
-#ifdef HAVE_READLINE
-        if (start == 0)
-            matches = rl_completion_matches ((char*)text, &my_generator);
-        else
-            rl_bind_key('\t',rl_abort);
-#endif
-        
-        return (matches);
-    }
-    
-    
     void wallet::getline( const fc::string& prompt, fc::string& line)
     {
-        // getting file descriptor for C++ streams is near impossible
-        // so we just assume it's the same as the C stream...
-#ifdef HAVE_READLINE
-#ifndef WIN32
-        if( isatty( fileno( stdin ) ) )
-#else
-            // it's implied by
-            // https://msdn.microsoft.com/en-us/library/f4s0ddew.aspx
-            // that this is the proper way to do this on Windows, but I have
-            // no access to a Windows compiler and thus,
-            // no idea if this actually works
-            if( _isatty( _fileno( stdin ) ) )
-#endif
-            {
-                rl_attempted_completion_function = wallet_completion;
-                
-                static fc::thread getline_thread("getline");
-                getline_thread.async( [&](){
-                    char* line_read = nullptr;
-                    std::cout.flush(); //readline doesn't use cin, so we must manually flush _out
-                    line_read = readline(prompt.c_str());
-                    if( line_read == nullptr )
-                        FC_THROW_EXCEPTION( fc::eof_exception, "" );
-                    rl_bind_key( '\t', rl_complete );
-                    if( *line_read )
-                        add_history(line_read);
-                    line = line_read;
-                    free(line_read);
-                }).wait();
-            }
-            else
-#endif
-            {
-                std::cout << prompt;
-                // sync_call( cin_thread, [&](){ std::getline( *input_stream, line ); }, "getline");
-                fc::getline( fc::cin, line );
-                return;
-            }
+        std::cout << prompt;
+        // sync_call( cin_thread, [&](){ std::getline( *input_stream, line ); }, "getline");
+        fc::getline( fc::cin, line );
     }
     
 } } // namespace fc::rpc

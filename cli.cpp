@@ -23,14 +23,16 @@ namespace kgt { namespace rpc {
     cli::cli() {
         _wallet = std::make_shared<kgt::rpc::wallet>();
     }
-    int cli::init(std::string &chain_id, std::string &ws_server) {
-        return _wallet->init(chain_id, ws_server);
+    int cli::init(std::string &chain_id, std::string &ws_server, int timeout) {
+        return _wallet->init(chain_id, ws_server, timeout);
     }
     
     int cli::runCommand(api_type api, std::string &command, std::string &result) {
         return _wallet->runCommand(api, command, result);
     }
-    
+void cli::setTimeout(int timeout) {
+    _wallet->setTimeout(timeout);
+}
     
 }}
 
