@@ -136,10 +136,11 @@ void wallet::setTimeout(int timeout) {
         }
         catch ( const fc::exception& e )
         {
-            std::cout << e.to_detail_string() << "\n";
 //            if (_showError != 0) {
 //                std::cout << e.to_detail_string() << "\n";
 //            }
+            if (e.code() == 0) return 10000;
+            
             return e.code();
         }
     }
